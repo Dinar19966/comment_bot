@@ -1,10 +1,22 @@
 import { Module } from '@nestjs/common';
-import { PostService } from './post.service';
 import { HttpModule } from '@nestjs/axios';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PostService } from './post.service';
+import { RedisService } from '../common/redis.service';
 
 @Module({
-  imports: [HttpModule],
-  providers: [PostService],
+  imports: [
+    HttpModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        timeout: configService.get<number>('HTTP_TIMEOUT', 5000),
+        maxRedirects: configService.get<number>('HTTP_MAX_REDIRECTS', 3),
+      }),
+      inject: [ConfigService],
+    }),
+    ConfigModule,
+  ],
+  providers: [PostService, RedisService],
   exports: [PostService],
 })
 export class PostModule {}
